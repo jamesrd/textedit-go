@@ -95,24 +95,28 @@ func (m model) View() string {
 	var sb strings.Builder
 
 	for y := m.pageStart; y < m.pageStart+m.height-1; y++ {
-		line := " -"
+		line := "\033[90m -\033[0m"
 		if y < len(m.content) {
 			line = m.content[y]
 		}
 		if y == m.cursorY && len(line) == 0 {
-			sb.WriteString(">\n")
+			sb.WriteString(ansiInvertRune(' '))
 		} else {
 			for x, c := range line {
 				if x == m.cursorX && y == m.cursorY {
-					sb.WriteRune('>')
+					sb.WriteString(ansiInvertRune(c))
 				} else {
 					sb.WriteRune(c)
 				}
 			}
-			sb.WriteRune('\n')
 		}
+		sb.WriteRune('\n')
 	}
 	return sb.String()
+}
+
+func ansiInvertRune(c rune) string {
+	return fmt.Sprintf("\033[07m%c\033[27m", c)
 }
 
 func initModelWithText(s string) model {
