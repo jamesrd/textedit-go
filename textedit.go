@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -11,6 +12,7 @@ import (
 
 type model struct {
 	content   []string
+	fileName  string
 	cursorX   int
 	virtualX  int
 	cursorY   int
@@ -128,8 +130,36 @@ func initModelWithText(s string) model {
 	}
 }
 
+func initModelWithFile(fileName string) model {
+	m := model{}
+	if len(fileName) > 0 {
+		m.content = strings.Split(readFile(fileName), "\n")
+	} else {
+		m.content = []string{""}
+	}
+	return m
+}
+func readFile(name string) string {
+	var contents, err = os.ReadFile(name)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ""
+		} else {
+			// TODO find other errors to handle
+			return err.Error()
+		}
+
+	}
+	return string(contents)
+}
+
 func main() {
-	p := tea.NewProgram(initModelWithText("Hello!\n\nPress ctrl+q to quit."))
+	var fileName string
+	if len(os.Args) > 1 {
+		fileName = os.Args[1]
+	}
+
+	p := tea.NewProgram(initModelWithFile(fileName))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
