@@ -82,8 +82,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			// TODO: break line
 			m.content = slices.Insert(m.content, m.cursorY, "")
+		case "backspace":
+			// TODO implement removing previous character
+			m.content = slices.Delete(m.content, m.cursorY, m.cursorY+1)
+			if len(m.content) == 0 {
+				m.content = append(m.content, "")
+			}
+			m.cursorY = min(m.cursorY, len(m.content)-1)
+		case "delete":
+			//TODO implement removing current character
+			m.content = slices.Delete(m.content, m.cursorY, m.cursorY+1)
+			if len(m.content) == 0 {
+				m.content = append(m.content, "")
+			}
+			m.cursorY = min(m.cursorY, len(m.content)-1)
+		case "esc":
+
 		default:
-			m.content = slices.Insert(m.content, m.cursorY, key)
+			// TODO actually insert the character
+			if len(key) == 1 {
+				m.content = slices.Insert(m.content, m.cursorY, key)
+			} else if key == "tab" {
+				m.content = slices.Insert(m.content, m.cursorY, "\t")
+			}
 		}
 		max_x := max(len(m.content[m.cursorY])-1, 0)
 		m.cursorX = min(max_x, max(m.cursorX, m.virtualX))
