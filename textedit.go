@@ -22,7 +22,6 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
 	return tea.EnterAltScreen
 }
 
@@ -37,6 +36,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// application control
 		case "ctrl+c", "ctrl+q":
 			return m, tea.Quit
+
+		case "ctrl+s":
+			err := m.writeFile()
+			if err != nil {
+				panic(err)
+			}
+			return m, nil
 
 		// navigation
 		case "up":
@@ -121,24 +127,19 @@ func ansiInvertRune(c rune) string {
 	return fmt.Sprintf("\033[07m%c\033[27m", c)
 }
 
-func initModelWithText(s string) model {
-	return model{
-		content:  strings.Split(s, "\n"),
-		cursorY:  0,
-		virtualX: 0,
-		cursorX:  0,
-	}
-}
-
 func initModelWithFile(fileName string) model {
 	m := model{}
 	if len(fileName) > 0 {
+		m.fileName = fileName
 		m.content = strings.Split(readFile(fileName), "\n")
 	} else {
+		// TODO make sure the file doesn't exist already
+		m.fileName = "untitled.txt"
 		m.content = []string{""}
 	}
 	return m
 }
+
 func readFile(name string) string {
 	var contents, err = os.ReadFile(name)
 	if err != nil {
@@ -151,6 +152,11 @@ func readFile(name string) string {
 
 	}
 	return string(contents)
+}
+
+func (m model) writeFile() error {
+	fileContent := strings.Join(m.content, "\n")
+	return os.WriteFile(m.fileName, []byte(fileContent), 0644)
 }
 
 func main() {
