@@ -10,7 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type model struct {
+type state struct {
+	editor    Model
 	content   []string
 	fileName  string
 	cursorX   int
@@ -21,11 +22,11 @@ type model struct {
 	pageStart int
 }
 
-func (m model) Init() tea.Cmd {
+func (m state) Init() tea.Cmd {
 	return tea.EnterAltScreen
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -68,15 +69,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.virtualX = m.cursorX
 
 		case "left":
-			if m.cursorX > 0 {
-				m.cursorX--
-				m.virtualX = m.cursorX
-			}
+			m.editor.MoveCursor(-1, 0)
 		case "right":
-			if m.cursorX < len(m.content[m.cursorY])-1 {
-				m.cursorX++
-				m.virtualX = m.cursorX
-			}
+			m.editor.MoveCursor(1, 0)
 
 		// text editing
 		case "enter":
@@ -120,7 +115,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m state) View() string {
+	var sb strings.Builder
+	ed := &m.editor
+
+	for i := 0; i < len(ed.content); i++ {
+		b := ed.content[i]
+		if i == ed.index {
+			switch b {
+			case '\n':
+				sb.WriteString(ansiInvertRune(' '))
+				sb.WriteRune('\n')
+			default:
+				sb.WriteString(ansiInvertByte(b))
+			}
+		} else {
+			sb.WriteByte(b)
+		}
+	}
+	if ed.index == len(ed.content) {
+		sb.WriteString(ansiInvertRune(' '))
+	}
+
+	return sb.String()
+}
+
+func (m state) View2() string {
 	var sb strings.Builder
 
 	for y := m.pageStart; y < m.pageStart+m.height-1; y++ {
@@ -148,11 +168,22 @@ func ansiInvertRune(c rune) string {
 	return fmt.Sprintf("\033[07m%c\033[27m", c)
 }
 
-func InitModelWithFile(fileName string) model {
-	m := model{}
+func ansiInvertByte(c byte) string {
+	return fmt.Sprintf("\033[07m%c\033[27m", c)
+}
+
+func InitModelWithFile(fileName string) state {
+	m := state{}
 	if len(fileName) > 0 {
 		m.fileName = fileName
-		m.content = strings.Split(readFile(fileName), "\n")
+		content, err := readFile(fileName)
+		if err != nil {
+			panic(err)
+		}
+		m.editor = Model{
+			content: content,
+		}
+		m.content = strings.Split(string(content), "\n")
 	} else {
 		// TODO make sure the file doesn't exist already
 		m.fileName = "untitled.txt"
@@ -161,21 +192,21 @@ func InitModelWithFile(fileName string) model {
 	return m
 }
 
-func readFile(name string) string {
+func readFile(name string) ([]byte, error) {
 	var contents, err = os.ReadFile(name)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return ""
+			return []byte{}, nil
 		} else {
 			// TODO find other errors to handle
-			return err.Error()
+			return []byte{}, err
 		}
 
 	}
-	return string(contents)
+	return contents, nil
 }
 
-func (m model) writeFile() error {
+func (m state) writeFile() error {
 	fileContent := strings.Join(m.content, "\n")
 	return os.WriteFile(m.fileName, []byte(fileContent), 0644)
 }
