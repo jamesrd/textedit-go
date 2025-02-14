@@ -1,4 +1,4 @@
-package main
+package textedit
 
 import (
 	"errors"
@@ -148,7 +148,7 @@ func ansiInvertRune(c rune) string {
 	return fmt.Sprintf("\033[07m%c\033[27m", c)
 }
 
-func initModelWithFile(fileName string) model {
+func InitModelWithFile(fileName string) model {
 	m := model{}
 	if len(fileName) > 0 {
 		m.fileName = fileName
@@ -178,17 +178,4 @@ func readFile(name string) string {
 func (m model) writeFile() error {
 	fileContent := strings.Join(m.content, "\n")
 	return os.WriteFile(m.fileName, []byte(fileContent), 0644)
-}
-
-func main() {
-	var fileName string
-	if len(os.Args) > 1 {
-		fileName = os.Args[1]
-	}
-
-	p := tea.NewProgram(initModelWithFile(fileName))
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
 }
