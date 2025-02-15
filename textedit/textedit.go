@@ -16,6 +16,7 @@ type state struct {
 	width     int
 	pageStart int
 	message   string
+	content   []byte
 }
 
 func (m state) Init() tea.Cmd {
@@ -79,16 +80,18 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	}
+	m.content, m.pageStart = m.model.GetLines(m.pageStart, m.height-1)
 	return m, nil
 }
 
 func (m state) View() string {
 	var sb strings.Builder
-	sb.WriteString(writeTitleLine(m.fileName, m.message))
-	content, index := m.model.GetContent()
+	sb.WriteString(m.writeTitleLine())
 
-	for i := 0; i < len(content); i++ {
-		b := content[i]
+	index := m.model.index - m.pageStart
+
+	for i := 0; i < len(m.content)-1; i++ {
+		b := m.content[i]
 		if i == index {
 			switch b {
 			case '\n':
@@ -109,22 +112,22 @@ func (m state) View() string {
 			}
 		}
 	}
-	if index == len(content) {
+	if index == len(m.content) {
 		sb.WriteString(ansiInvertRune(' '))
 	}
 
 	return sb.String()
 }
 
-func writeTitleLine(fileName string, message string) string {
-	titleColor := "\033[42m"
+func (m *state) writeTitleLine() string {
+	titleColor := "\033[45m"
 	errorColor := "\033[41m"
 	resumeColor := "\033[0m"
 	fm := ""
-	if len(message) > 0 {
-		fm = fmt.Sprintf(" %s !! %s%s", errorColor, message, titleColor)
+	if len(m.message) > 0 {
+		fm = fmt.Sprintf(" %s !! %s%s", errorColor, m.message, titleColor)
 	}
-	return fmt.Sprintf("%sFile: %s%s\n%s", titleColor, fileName, fm, resumeColor)
+	return fmt.Sprintf("%sFile: %s - %d,%d%s%s\n", titleColor, m.fileName, m.pageStart, m.model.index, fm, resumeColor)
 }
 
 func ansiInvertRune(c rune) string {

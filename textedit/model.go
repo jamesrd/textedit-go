@@ -96,6 +96,45 @@ func (m *Model) GetContent() ([]byte, int) {
 	return m.content, m.index
 }
 
+func (m *Model) GetLines(idx int, lines int) ([]byte, int) {
+	startIdx, _ := m.countLinesBetween(idx, m.index, lines)
+	endIdx := m.findNthNewline(startIdx, lines)
+	return m.content[startIdx:endIdx], startIdx
+}
+
+func (m *Model) countLinesBetween(startIdx int, endIdx int, maxLines int) (int, int) {
+	lines := 0
+	if endIdx < startIdx {
+		startIdx = m.findLineStart(endIdx)
+	}
+	idx := min(endIdx, len(m.content)-1)
+	for lines < maxLines && idx >= startIdx && idx >= 0 {
+		if m.content[idx] == '\n' {
+			lines++
+		}
+		idx--
+	}
+	if lines == maxLines {
+		return idx + 1, lines
+	}
+	return startIdx, lines
+}
+
+func (m *Model) findNthNewline(start int, n int) int {
+	idx := start
+	length := len(m.content)
+
+	lines := 0
+
+	for lines < n && idx < length {
+		if m.content[idx] == '\n' {
+			lines++
+		}
+		idx++
+	}
+	return idx
+}
+
 func (m *Model) scanNewLine(c int, d direction) int {
 	inc := -1
 	if d == forward {
