@@ -11,7 +11,7 @@ import (
 )
 
 type state struct {
-	editor    Model
+	model     Model
 	content   []string
 	fileName  string
 	cursorX   int
@@ -31,8 +31,8 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-	case tea.KeyMsg:
 
+	case tea.KeyMsg:
 		switch key := msg.String(); key {
 		// application control
 		case "ctrl+c", "ctrl+q":
@@ -47,31 +47,22 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// navigation
 		case "up":
-			if m.cursorY > 0 {
-				m.cursorY--
-			}
+			m.model.MoveCursorY(-1)
 		case "pgup":
-			m.cursorY = max(0, m.cursorY-m.height/2)
-
+			m.model.MoveCursorY(-m.height / 2)
 		case "down":
-			if m.cursorY < len(m.content)-1 {
-				m.cursorY++
-			}
+			m.model.MoveCursorY(1)
 		case "pgdown":
-			m.cursorY = min(len(m.content)-1, m.cursorY+m.height/2)
-
+			m.model.MoveCursorY(m.height / 2)
 		case "home":
-			m.cursorX = 0
-			m.virtualX = m.cursorX
-
+			m.model.MoveCursorToLineStart()
 		case "end":
-			m.cursorX = len(m.content[m.cursorY]) - 1
-			m.virtualX = m.cursorX
+			m.model.MoveCursorToLineEnd()
 
 		case "left":
-			m.editor.MoveCursor(-1, 0)
+			m.model.MoveCursorX(-1)
 		case "right":
-			m.editor.MoveCursor(1, 0)
+			m.model.MoveCursorX(1)
 
 		// text editing
 		case "enter":
@@ -117,23 +108,31 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m state) View() string {
 	var sb strings.Builder
-	ed := &m.editor
+	content, index := m.model.GetContent()
 
-	for i := 0; i < len(ed.content); i++ {
-		b := ed.content[i]
-		if i == ed.index {
+	for i := 0; i < len(content); i++ {
+		b := content[i]
+		if i == index {
 			switch b {
 			case '\n':
 				sb.WriteString(ansiInvertRune(' '))
 				sb.WriteRune('\n')
+			case '\t':
+				sb.WriteString(ansiInvertRune(' '))
+				sb.WriteString("       ")
 			default:
 				sb.WriteString(ansiInvertByte(b))
 			}
 		} else {
-			sb.WriteByte(b)
+			switch b {
+			case '\t':
+				sb.WriteString("        ")
+			default:
+				sb.WriteByte(b)
+			}
 		}
 	}
-	if ed.index == len(ed.content) {
+	if index == len(content) {
 		sb.WriteString(ansiInvertRune(' '))
 	}
 
@@ -180,7 +179,7 @@ func InitModelWithFile(fileName string) state {
 		if err != nil {
 			panic(err)
 		}
-		m.editor = Model{
+		m.model = Model{
 			content: content,
 		}
 		m.content = strings.Split(string(content), "\n")
