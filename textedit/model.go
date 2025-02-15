@@ -11,6 +11,7 @@ type Model struct {
 	content  []byte
 	index    int
 	virtualX int
+	tabstop  int
 }
 
 func (m *Model) MoveCursorX(d int) {

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,14 +11,11 @@ import (
 
 type state struct {
 	model     Model
-	content   []string
 	fileName  string
-	cursorX   int
-	virtualX  int
-	cursorY   int
 	height    int
 	width     int
 	pageStart int
+	message   string
 }
 
 func (m state) Init() tea.Cmd {
@@ -41,7 +37,7 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+s":
 			err := m.writeFile()
 			if err != nil {
-				panic(err)
+				m.message = err.Error()
 			}
 			return m, nil
 
@@ -67,39 +63,19 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// text editing
 		case "enter":
 			// TODO: break line
-			m.content = slices.Insert(m.content, m.cursorY, "")
 		case "backspace":
 			// TODO implement removing previous character
-			m.content = slices.Delete(m.content, m.cursorY, m.cursorY+1)
-			if len(m.content) == 0 {
-				m.content = append(m.content, "")
-			}
-			m.cursorY = min(m.cursorY, len(m.content)-1)
 		case "delete":
 			//TODO implement removing current character
-			m.content = slices.Delete(m.content, m.cursorY, m.cursorY+1)
-			if len(m.content) == 0 {
-				m.content = append(m.content, "")
-			}
-			m.cursorY = min(m.cursorY, len(m.content)-1)
 		case "esc":
+			if len(m.message) == 0 {
+				m.message = "No messages!"
+			} else {
+				m.message = ""
+			}
 
 		default:
 			// TODO actually insert the character
-			if len(key) == 1 {
-				m.content = slices.Insert(m.content, m.cursorY, key)
-			} else if key == "tab" {
-				m.content = slices.Insert(m.content, m.cursorY, "\t")
-			}
-		}
-		max_x := max(len(m.content[m.cursorY])-1, 0)
-		m.cursorX = min(max_x, max(m.cursorX, m.virtualX))
-
-		// set up the pageStart
-		if m.cursorY < m.pageStart {
-			m.pageStart = m.cursorY
-		} else if m.cursorY >= m.pageStart+m.height-2 {
-			m.pageStart = max(0, m.cursorY-(m.height-2))
 		}
 
 	}
@@ -108,6 +84,7 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m state) View() string {
 	var sb strings.Builder
+	sb.WriteString(writeTitleLine(m.fileName, m.message))
 	content, index := m.model.GetContent()
 
 	for i := 0; i < len(content); i++ {
@@ -139,28 +116,15 @@ func (m state) View() string {
 	return sb.String()
 }
 
-func (m state) View2() string {
-	var sb strings.Builder
-
-	for y := m.pageStart; y < m.pageStart+m.height-1; y++ {
-		line := "\033[90m -\033[0m"
-		if y < len(m.content) {
-			line = m.content[y]
-		}
-		if y == m.cursorY && len(line) == 0 {
-			sb.WriteString(ansiInvertRune(' '))
-		} else {
-			for x, c := range line {
-				if x == m.cursorX && y == m.cursorY {
-					sb.WriteString(ansiInvertRune(c))
-				} else {
-					sb.WriteRune(c)
-				}
-			}
-		}
-		sb.WriteRune('\n')
+func writeTitleLine(fileName string, message string) string {
+	titleColor := "\033[42m"
+	errorColor := "\033[41m"
+	resumeColor := "\033[0m"
+	fm := ""
+	if len(message) > 0 {
+		fm = fmt.Sprintf(" %s !! %s%s", errorColor, message, titleColor)
 	}
-	return sb.String()
+	return fmt.Sprintf("%sFile: %s%s\n%s", titleColor, fileName, fm, resumeColor)
 }
 
 func ansiInvertRune(c rune) string {
@@ -182,11 +146,12 @@ func InitModelWithFile(fileName string) state {
 		m.model = Model{
 			content: content,
 		}
-		m.content = strings.Split(string(content), "\n")
 	} else {
 		// TODO make sure the file doesn't exist already
 		m.fileName = "untitled.txt"
-		m.content = []string{""}
+		m.model = Model{
+			content: []byte{},
+		}
 	}
 	return m
 }
@@ -206,6 +171,6 @@ func readFile(name string) ([]byte, error) {
 }
 
 func (m state) writeFile() error {
-	fileContent := strings.Join(m.content, "\n")
-	return os.WriteFile(m.fileName, []byte(fileContent), 0644)
+	fileContent, _ := m.model.GetContent()
+	return os.WriteFile(m.fileName, fileContent, 0644)
 }
