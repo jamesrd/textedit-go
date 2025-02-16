@@ -1,5 +1,7 @@
 package textedit
 
+import "fmt"
+
 type direction int
 
 const (
@@ -9,7 +11,6 @@ const (
 
 type Model struct {
 	gapBuffer GapBuffer
-	content   []byte
 	index     int
 	virtualX  int
 	tabstop   int
@@ -17,7 +18,6 @@ type Model struct {
 
 func NewModel(content []byte) Model {
 	model := Model{
-		content:  content,
 		index:    0,
 		virtualX: 0,
 		tabstop:  8,
@@ -48,17 +48,30 @@ func (m *Model) Delete() {
 	m.gapBuffer.RemoveRight()
 }
 
+func (m *Model) GetContent() ([]byte, int) {
+	return m.gapBuffer.GetBytes(), m.gapBuffer.gapLeft
+}
+
+func (m *Model) GetStatus() string {
+	gap := m.gapBuffer.gapRight - m.gapBuffer.gapLeft + 1
+	size := m.gapBuffer.size - gap
+	return fmt.Sprintf("%d/%d [%d]", m.gapBuffer.gapLeft, size, gap)
+}
+
+// TODO make following functions work with gapBuffer
+
 func (m *Model) MoveCursorToLineStart() {
 	m.index = m.findLineStart(m.index)
 	m.virtualX = 0
 }
 
 func (m *Model) findLineStart(cIdx int) int {
-	rIdx := m.scanNewLine(cIdx, backward)
-	if rIdx > 0 {
-		rIdx++
-	}
-	return rIdx
+	// rIdx := m.scanNewLine(cIdx, backward)
+	// if rIdx > 0 {
+	// 	rIdx++
+	// }
+	// return rIdx
+	return cIdx
 }
 
 func (m *Model) MoveCursorToLineEnd() {
@@ -67,9 +80,9 @@ func (m *Model) MoveCursorToLineEnd() {
 }
 
 func (m *Model) findLineEnd(cIdx int) int {
-	if cIdx < len(m.content) && m.content[cIdx] != '\n' {
-		return m.scanNewLine(m.index, forward)
-	}
+	// if cIdx < len(m.content) && m.content[cIdx] != '\n' {
+	// 	return m.scanNewLine(m.index, forward)
+	// }
 	return cIdx
 }
 
@@ -106,74 +119,32 @@ func (m *Model) findPreviousLineStart(idx int) int {
 }
 
 func (m *Model) findNextLineStart(idx int) int {
-	if idx >= len(m.content) {
-		return len(m.content)
-	}
-	if m.content[idx] == '\n' {
-		return idx + 1
-	}
-	cls := m.scanNewLine(idx, forward) + 1
-	if cls > len(m.content) {
-		cls = m.findLineStart(cls - 1)
-	}
-	return cls
-}
-
-func (m *Model) GetContent() ([]byte, int) {
-	return m.content, m.index
-}
-
-func (m *Model) GetLines(idx int, lines int) ([]byte, int) {
-	startIdx, _ := m.countLinesBetween(idx, m.index, lines)
-	endIdx := m.findNthNewline(startIdx, lines)
-	return m.content[startIdx:endIdx], startIdx
-}
-
-func (m *Model) countLinesBetween(startIdx int, endIdx int, maxLines int) (int, int) {
-	lines := 0
-	if endIdx < startIdx {
-		startIdx = m.findLineStart(endIdx)
-	}
-	idx := min(endIdx, len(m.content)-1)
-	for lines < maxLines && idx >= startIdx && idx >= 0 {
-		if m.content[idx] == '\n' {
-			lines++
-		}
-		idx--
-	}
-	if lines == maxLines {
-		return idx + 1, lines
-	}
-	return startIdx, lines
-}
-
-func (m *Model) findNthNewline(start int, n int) int {
-	idx := start
-	length := len(m.content)
-
-	lines := 0
-
-	for lines < n && idx < length {
-		if m.content[idx] == '\n' {
-			lines++
-		}
-		idx++
-	}
+	// if idx >= len(m.content) {
+	// 	return len(m.content)
+	// }
+	// if m.content[idx] == '\n' {
+	// 	return idx + 1
+	// }
+	// cls := m.scanNewLine(idx, forward) + 1
+	// if cls > len(m.content) {
+	// 	cls = m.findLineStart(cls - 1)
+	// }
+	// return cls
 	return idx
 }
 
-func (m *Model) scanNewLine(c int, d direction) int {
-	inc := -1
-	if d == forward {
-		inc = 1
-	}
-
-	idx := c
-	found := false
-
-	for !found && idx+inc >= 0 && idx+inc < len(m.content) {
-		idx += inc
-		found = '\n' == m.content[idx]
-	}
-	return idx
-}
+// func (m *Model) scanNewLine(c int, d direction) int {
+// 	inc := -1
+// 	if d == forward {
+// 		inc = 1
+// 	}
+//
+// 	idx := c
+// 	found := false
+//
+// 	for !found && idx+inc >= 0 && idx+inc < len(m.content) {
+// 		idx += inc
+// 		found = '\n' == m.content[idx]
+// 	}
+// 	return idx
+// }

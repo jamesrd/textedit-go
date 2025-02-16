@@ -29,9 +29,6 @@ func (g *GapBuffer) Right(n int) {
 }
 
 func (g *GapBuffer) Insert(c byte) {
-	if g == nil {
-		panic("Ghwat!")
-	}
 	if g.gapLeft == g.gapRight {
 		g.grow()
 	}
@@ -68,7 +65,7 @@ func (g *GapBuffer) grow() {
 func (g *GapBuffer) GetByteAt(pos int) byte {
 	idx := pos
 	if pos >= g.gapLeft {
-		idx += (g.gapRight - g.gapLeft) + 1
+		idx += g.gapRight - g.gapLeft + 1
 	}
 	if idx >= g.size {
 		panic(fmt.Sprintf("Out of bounds. r %d c %d t %d", pos, idx, g.size))

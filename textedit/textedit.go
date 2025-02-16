@@ -16,7 +16,6 @@ type state struct {
 	width     int
 	pageStart int
 	message   string
-	content   []byte
 }
 
 func (m state) Init() tea.Cmd {
@@ -65,9 +64,9 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			m.model.Insert('\n')
 		case "backspace":
-			m.model.gapBuffer.RemoveLeft()
+			m.model.Backspace()
 		case "delete":
-			m.model.gapBuffer.RemoveRight()
+			m.model.Delete()
 		case "esc":
 			if len(m.message) == 0 {
 				m.message = "No messages!"
@@ -76,11 +75,14 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		default:
-			m.model.Insert(key[0])
+			if len(key) > 1 {
+				m.message = fmt.Sprintf("Found longer [%s]", key)
+			} else {
+				m.model.Insert(key[0])
+			}
 		}
 
 	}
-	m.model.index = m.model.gapBuffer.gapLeft
 	return m, nil
 }
 
@@ -88,11 +90,11 @@ func (m state) View() string {
 	var sb strings.Builder
 	sb.WriteString(m.writeTitleLine())
 
-	index := m.model.index
-	contentLen := m.model.gapBuffer.GetContentLen()
+	content, index := m.model.GetContent()
+	contentLen := len(content)
 
 	for i := 0; i < contentLen; i++ {
-		b := m.model.gapBuffer.GetByteAt(i)
+		b := content[i]
 		if i == index {
 			switch b {
 			case '\n':
@@ -130,12 +132,9 @@ func (m *state) writeTitleLine() string {
 	if len(m.message) > 0 {
 		fm = fmt.Sprintf(" %s !! %s%s", errorColor, m.message, titleColor)
 	}
-	l := m.model.index
-	r := m.model.gapBuffer.gapRight
-	c := m.model.gapBuffer.GetContentLen()
-	s := m.model.gapBuffer.size
+	mt := m.model.GetStatus()
 
-	return fmt.Sprintf("%sFile: %s - %d,%d/%d/%d%s%s\n", titleColor, m.fileName, l, r, c, s, fm, resumeColor)
+	return fmt.Sprintf("%sFile: %s - %s%s%s\n", titleColor, m.fileName, mt, fm, resumeColor)
 }
 
 func ansiInvertRune(c rune) string {
@@ -181,6 +180,6 @@ func readFile(name string) ([]byte, error) {
 }
 
 func (m state) writeFile() error {
-	fileContent := m.model.gapBuffer.GetBytes()
+	fileContent, _ := m.model.GetContent()
 	return os.WriteFile(m.fileName, fileContent, 0644)
 }
