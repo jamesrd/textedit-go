@@ -65,9 +65,9 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			m.model.Insert('\n')
 		case "backspace":
-			m.model.gapBuffer.Delete()
+			m.model.gapBuffer.RemoveLeft()
 		case "delete":
-			m.model.gapBuffer.Delete()
+			m.model.gapBuffer.RemoveRight()
 		case "esc":
 			if len(m.message) == 0 {
 				m.message = "No messages!"
@@ -80,7 +80,7 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	}
-	m.content, m.pageStart = m.model.GetLines(m.pageStart, m.height-1)
+	m.model.index = m.model.gapBuffer.gapLeft
 	return m, nil
 }
 
@@ -88,9 +88,10 @@ func (m state) View() string {
 	var sb strings.Builder
 	sb.WriteString(m.writeTitleLine())
 
-	index := m.model.gapBuffer.gapLeft
+	index := m.model.index
+	contentLen := m.model.gapBuffer.GetContentLen()
 
-	for i := 0; i < m.model.gapBuffer.GetContentLen(); i++ {
+	for i := 0; i < contentLen; i++ {
 		b := m.model.gapBuffer.GetByteAt(i)
 		if i == index {
 			switch b {
@@ -107,12 +108,14 @@ func (m state) View() string {
 			switch b {
 			case '\t':
 				sb.WriteString("        ")
+			case 0:
+				sb.WriteByte('^')
 			default:
 				sb.WriteByte(b)
 			}
 		}
 	}
-	if index == len(m.content) {
+	if index == contentLen {
 		sb.WriteString(ansiInvertRune(' '))
 	}
 
@@ -127,7 +130,7 @@ func (m *state) writeTitleLine() string {
 	if len(m.message) > 0 {
 		fm = fmt.Sprintf(" %s !! %s%s", errorColor, m.message, titleColor)
 	}
-	l := m.model.gapBuffer.gapLeft
+	l := m.model.index
 	r := m.model.gapBuffer.gapRight
 	c := m.model.gapBuffer.GetContentLen()
 	s := m.model.gapBuffer.size
@@ -140,6 +143,9 @@ func ansiInvertRune(c rune) string {
 }
 
 func ansiInvertByte(c byte) string {
+	if c == 0 {
+		c = '^'
+	}
 	return fmt.Sprintf("\033[07m%c\033[27m", c)
 }
 

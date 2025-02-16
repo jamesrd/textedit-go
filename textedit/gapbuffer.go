@@ -39,19 +39,26 @@ func (g *GapBuffer) Insert(c byte) {
 	g.gapLeft++
 }
 
-func (g *GapBuffer) Delete() {
+func (g *GapBuffer) RemoveLeft() {
 	if g.gapLeft > 0 {
 		g.buffer[g.gapLeft] = 0
 		g.gapLeft--
 	}
 }
 
+func (g *GapBuffer) RemoveRight() {
+	if g.gapRight < g.size-1 {
+		g.buffer[g.gapRight] = 0
+		g.gapRight++
+	}
+}
+
 func (g *GapBuffer) grow() {
-	newSize := g.size + g.gapSize
+	newSize := g.size + g.gapSize - 1
 	buffer := make([]byte, newSize)
 	copy(buffer, g.buffer[0:g.gapLeft])
 	newRight := g.gapSize + (g.gapLeft - 1)
-	copy(buffer[newRight:], g.buffer[g.gapRight:])
+	copy(buffer[newRight:], g.buffer[g.gapRight+1:])
 
 	g.gapRight = newRight
 	g.size = newSize
@@ -60,8 +67,8 @@ func (g *GapBuffer) grow() {
 
 func (g *GapBuffer) GetByteAt(pos int) byte {
 	idx := pos
-	if pos > g.gapLeft {
-		idx += (g.gapRight - g.gapLeft)
+	if pos >= g.gapLeft {
+		idx += (g.gapRight - g.gapLeft) + 1
 	}
 	if idx >= g.size {
 		panic(fmt.Sprintf("Out of bounds. r %d c %d t %d", pos, idx, g.size))
@@ -70,14 +77,14 @@ func (g *GapBuffer) GetByteAt(pos int) byte {
 }
 
 func (g *GapBuffer) GetContentLen() int {
-	return g.size - (g.gapRight - g.gapLeft)
+	return g.size - (g.gapRight - g.gapLeft) - 1
 }
 
 func (g *GapBuffer) GetBytes() []byte {
-	contentSize := g.size - (g.gapRight - g.gapLeft)
+	contentSize := g.size - (g.gapRight - g.gapLeft) - 1
 	content := make([]byte, contentSize)
 	copy(content[0:], g.buffer[0:g.gapLeft])
-	copy(content[g.gapLeft:], g.buffer[g.gapRight:])
+	copy(content[g.gapLeft:], g.buffer[g.gapRight+1:])
 	return content
 }
 

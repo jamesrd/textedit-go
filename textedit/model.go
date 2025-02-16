@@ -22,7 +22,8 @@ func NewModel(content []byte) Model {
 		virtualX: 0,
 		tabstop:  8,
 	}
-	model.gapBuffer = NewGapBuffer(content, 50)
+	// TODO: probably want a larger gap size
+	model.gapBuffer = NewGapBuffer(content, 100)
 
 	return model
 }
@@ -37,6 +38,14 @@ func (m *Model) MoveCursorX(d int) {
 
 func (m *Model) Insert(b byte) {
 	m.gapBuffer.Insert(b)
+}
+
+func (m *Model) Backspace() {
+	m.gapBuffer.RemoveLeft()
+}
+
+func (m *Model) Delete() {
+	m.gapBuffer.RemoveRight()
 }
 
 func (m *Model) MoveCursorToLineStart() {
