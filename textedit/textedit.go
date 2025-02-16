@@ -63,11 +63,11 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// text editing
 		case "enter":
-			// TODO: break line
+			m.model.Insert('\n')
 		case "backspace":
-			// TODO implement removing previous character
+			m.model.gapBuffer.Delete()
 		case "delete":
-			//TODO implement removing current character
+			m.model.gapBuffer.Delete()
 		case "esc":
 			if len(m.message) == 0 {
 				m.message = "No messages!"
@@ -76,7 +76,7 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		default:
-			// TODO actually insert the character
+			m.model.Insert(key[0])
 		}
 
 	}
@@ -88,10 +88,10 @@ func (m state) View() string {
 	var sb strings.Builder
 	sb.WriteString(m.writeTitleLine())
 
-	index := m.model.index - m.pageStart
+	index := m.model.gapBuffer.gapLeft
 
-	for i := 0; i < len(m.content)-1; i++ {
-		b := m.content[i]
+	for i := 0; i < m.model.gapBuffer.GetContentLen(); i++ {
+		b := m.model.gapBuffer.GetByteAt(i)
 		if i == index {
 			switch b {
 			case '\n':
@@ -127,7 +127,12 @@ func (m *state) writeTitleLine() string {
 	if len(m.message) > 0 {
 		fm = fmt.Sprintf(" %s !! %s%s", errorColor, m.message, titleColor)
 	}
-	return fmt.Sprintf("%sFile: %s - %d,%d%s%s\n", titleColor, m.fileName, m.pageStart, m.model.index, fm, resumeColor)
+	l := m.model.gapBuffer.gapLeft
+	r := m.model.gapBuffer.gapRight
+	c := m.model.gapBuffer.GetContentLen()
+	s := m.model.gapBuffer.size
+
+	return fmt.Sprintf("%sFile: %s - %d,%d/%d/%d%s%s\n", titleColor, m.fileName, l, r, c, s, fm, resumeColor)
 }
 
 func ansiInvertRune(c rune) string {
@@ -146,15 +151,11 @@ func InitModelWithFile(fileName string) state {
 		if err != nil {
 			panic(err)
 		}
-		m.model = Model{
-			content: content,
-		}
+		m.model = NewModel(content)
 	} else {
 		// TODO make sure the file doesn't exist already
 		m.fileName = "untitled.txt"
-		m.model = Model{
-			content: []byte{},
-		}
+		m.model = NewModel([]byte{})
 	}
 	return m
 }
@@ -174,6 +175,6 @@ func readFile(name string) ([]byte, error) {
 }
 
 func (m state) writeFile() error {
-	fileContent, _ := m.model.GetContent()
+	fileContent := m.model.gapBuffer.GetBytes()
 	return os.WriteFile(m.fileName, fileContent, 0644)
 }

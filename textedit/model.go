@@ -8,17 +8,35 @@ const (
 )
 
 type Model struct {
-	content  []byte
-	index    int
-	virtualX int
-	tabstop  int
+	gapBuffer GapBuffer
+	content   []byte
+	index     int
+	virtualX  int
+	tabstop   int
+}
+
+func NewModel(content []byte) Model {
+	model := Model{
+		content:  content,
+		index:    0,
+		virtualX: 0,
+		tabstop:  8,
+	}
+	model.gapBuffer = NewGapBuffer(content, 50)
+
+	return model
 }
 
 func (m *Model) MoveCursorX(d int) {
-	nindex := m.index + d
-	nindex = max(0, nindex)
-	m.index = min(nindex, len(m.content))
-	m.virtualX = m.index - m.findLineStart(m.index)
+	if d < 0 {
+		m.gapBuffer.Left(-d)
+	} else {
+		m.gapBuffer.Right(d)
+	}
+}
+
+func (m *Model) Insert(b byte) {
+	m.gapBuffer.Insert(b)
 }
 
 func (m *Model) MoveCursorToLineStart() {
