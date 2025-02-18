@@ -101,8 +101,14 @@ func (m state) View() string {
 	content, index := m.model.GetContent()
 	contentLen := len(content)
 
+	linesWritten := 0
+
 	for i := 0; i < contentLen; i++ {
 		b := content[i]
+		if b == '\n' {
+			linesWritten++
+		}
+
 		if i == index {
 			switch b {
 			case '\n':
@@ -127,6 +133,10 @@ func (m state) View() string {
 	}
 	if index == contentLen {
 		sb.WriteString(ansiInvertRune(' '))
+	}
+	for linesWritten < m.height-2 {
+		sb.WriteString("\n ~")
+		linesWritten++
 	}
 
 	return sb.String()
