@@ -94,6 +94,7 @@ func (m state) processKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m state) View() string {
+	// TODO handle paging
 	var sb strings.Builder
 	sb.WriteString(m.writeTitleLine())
 

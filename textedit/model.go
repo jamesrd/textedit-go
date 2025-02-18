@@ -34,6 +34,7 @@ func (m *Model) MoveCursorX(d int) {
 	} else {
 		m.gapBuffer.Right(d)
 	}
+	m.virtualX = m.gapBuffer.gapLeft - m.findLineStart(m.gapBuffer.gapLeft)
 }
 
 func (m *Model) Insert(b byte) {
@@ -55,7 +56,7 @@ func (m *Model) GetContent() ([]byte, int) {
 func (m *Model) GetStatus() string {
 	gap := m.gapBuffer.gapRight - m.gapBuffer.gapLeft + 1
 	size := m.gapBuffer.size - gap
-	return fmt.Sprintf("%d/%d [%d]", m.gapBuffer.gapLeft, size, gap)
+	return fmt.Sprintf("%d/%d [%d] col: %d", m.gapBuffer.gapLeft, size, gap, m.virtualX)
 }
 
 func (m *Model) MoveCursorToLineStart() {
@@ -76,7 +77,8 @@ func (m *Model) MoveCursorToLineEnd() {
 	target := m.findLineEnd(m.gapBuffer.gapLeft)
 	m.gapBuffer.Right(target - m.gapBuffer.gapLeft)
 
-	m.virtualX = 0
+	sIdx := m.findLineStart(m.gapBuffer.gapLeft)
+	m.virtualX = m.gapBuffer.gapLeft - sIdx
 }
 
 func (m *Model) findLineEnd(cIdx int) int {
@@ -90,50 +92,38 @@ func (m *Model) findLineEnd(cIdx int) int {
 // TODO make following functions work with gapBuffer
 
 func (m *Model) MoveCursorY(d int) {
-	var newLineStart int
+	tVirtualX := m.virtualX
 	if d == 0 {
 		return
 	} else if d < 0 {
-		newLineStart = m.findPreviousLineStart(m.index)
-		for i := -1; i > d; i-- {
-			newLineStart = m.findPreviousLineStart(newLineStart)
+		m.MoveCursorToLineStart()
+		for i := 0; i > d && m.gapBuffer.gapLeft > 0; i-- {
+			m.MoveCursorX(-1)
+			m.MoveCursorToLineStart()
 		}
 	} else if d > 0 {
-		newLineStart = m.findNextLineStart(m.index)
-		for i := 1; i < d; i++ {
-			newLineStart = m.findNextLineStart(newLineStart)
+		for i := 0; i < d && m.gapBuffer.gapLeft < m.gapBuffer.GetContentLen(); i++ {
+			m.MoveCursorToLineEnd()
+			m.MoveCursorX(1)
 		}
+		m.MoveCursorToLineStart()
 	}
 
-	newLineEnd := m.findLineEnd(newLineStart)
-	if newLineStart+m.virtualX < newLineEnd {
-		m.index = newLineStart + m.virtualX
+	dVx := m.findLineEnd(m.gapBuffer.gapLeft) - m.gapBuffer.gapLeft
+
+	if tVirtualX > dVx {
+		m.MoveCursorX(dVx)
+		m.virtualX = tVirtualX
 	} else {
-		m.index = newLineStart
+		m.MoveCursorX(tVirtualX)
 	}
-}
 
-func (m *Model) findPreviousLineStart(idx int) int {
-	cls := m.findLineStart(idx)
-	if cls > 0 {
-		cls = m.findLineStart(cls - 1)
-	}
-	return cls
-}
-
-func (m *Model) findNextLineStart(idx int) int {
-	// if idx >= len(m.content) {
-	// 	return len(m.content)
+	// newLineEnd := m.findLineEnd(newLineStart)
+	// if newLineStart+m.virtualX < newLineEnd {
+	// 	m.index = newLineStart + m.virtualX
+	// } else {
+	// 	m.index = newLineStart
 	// }
-	// if m.content[idx] == '\n' {
-	// 	return idx + 1
-	// }
-	// cls := m.scanNewLine(idx, forward) + 1
-	// if cls > len(m.content) {
-	// 	cls = m.findLineStart(cls - 1)
-	// }
-	// return cls
-	return idx
 }
 
 func (m *Model) scanNewLine(c int, d direction) int {
