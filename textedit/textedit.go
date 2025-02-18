@@ -15,6 +15,7 @@ type state struct {
 	height    int
 	width     int
 	pageStart int
+	pageJump  int
 	message   string
 }
 
@@ -27,61 +28,67 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+		m.pageJump = m.height / 2
 
 	case tea.KeyMsg:
-		switch key := msg.String(); key {
-		// application control
-		case "ctrl+c", "ctrl+q":
-			return m, tea.Quit
+		return m.processKey(msg)
 
-		case "ctrl+s":
-			err := m.writeFile()
-			if err != nil {
-				m.message = err.Error()
-			}
-			return m, nil
+	}
+	return m, nil
+}
 
-		// navigation
-		case "up":
-			m.model.MoveCursorY(-1)
-		case "pgup":
-			m.model.MoveCursorY(-m.height / 2)
-		case "down":
-			m.model.MoveCursorY(1)
-		case "pgdown":
-			m.model.MoveCursorY(m.height / 2)
-		case "home":
-			m.model.MoveCursorToLineStart()
-		case "end":
-			m.model.MoveCursorToLineEnd()
+func (m state) processKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch key := msg.String(); key {
+	// application control
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
 
-		case "left":
-			m.model.MoveCursorX(-1)
-		case "right":
-			m.model.MoveCursorX(1)
-
-		// text editing
-		case "enter":
-			m.model.Insert('\n')
-		case "backspace":
-			m.model.Backspace()
-		case "delete":
-			m.model.Delete()
-		case "esc":
-			if len(m.message) == 0 {
-				m.message = "No messages!"
-			} else {
-				m.message = ""
-			}
-
-		default:
-			if len(key) > 1 {
-				m.message = fmt.Sprintf("Found longer [%s]", key)
-			} else {
-				m.model.Insert(key[0])
-			}
+	case "ctrl+s":
+		err := m.writeFile()
+		if err != nil {
+			m.message = err.Error()
 		}
 
+	// navigation
+	case "up":
+		m.model.MoveCursorY(-1)
+	case "pgup":
+		m.model.MoveCursorY(-m.pageJump)
+	case "down":
+		m.model.MoveCursorY(1)
+	case "pgdown":
+		m.model.MoveCursorY(m.pageJump)
+
+	case "home":
+		m.model.MoveCursorToLineStart()
+	case "end":
+		m.model.MoveCursorToLineEnd()
+
+	case "left":
+		m.model.MoveCursorX(-1)
+	case "right":
+		m.model.MoveCursorX(1)
+
+	// text editing
+	case "enter":
+		m.model.Insert('\n')
+	case "backspace":
+		m.model.Backspace()
+	case "delete":
+		m.model.Delete()
+	case "esc":
+		if len(m.message) == 0 {
+			m.message = "No messages!"
+		} else {
+			m.message = ""
+		}
+
+	default:
+		if len(key) > 1 {
+			m.message = fmt.Sprintf("Unhandled [%s]", key)
+		} else {
+			m.model.Insert(key[0])
+		}
 	}
 	return m, nil
 }

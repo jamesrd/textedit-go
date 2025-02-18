@@ -58,33 +58,36 @@ func (m *Model) GetStatus() string {
 	return fmt.Sprintf("%d/%d [%d]", m.gapBuffer.gapLeft, size, gap)
 }
 
-// TODO make following functions work with gapBuffer
-
 func (m *Model) MoveCursorToLineStart() {
-	m.index = m.findLineStart(m.index)
+	target := m.findLineStart(m.gapBuffer.gapLeft)
+	m.gapBuffer.Left(m.gapBuffer.gapLeft - target)
 	m.virtualX = 0
 }
 
 func (m *Model) findLineStart(cIdx int) int {
-	// rIdx := m.scanNewLine(cIdx, backward)
-	// if rIdx > 0 {
-	// 	rIdx++
-	// }
-	// return rIdx
-	return cIdx
+	rIdx := m.scanNewLine(cIdx, backward)
+	if rIdx > 0 {
+		rIdx++
+	}
+	return rIdx
 }
 
 func (m *Model) MoveCursorToLineEnd() {
-	m.index = m.findLineEnd(m.index)
-	m.virtualX = m.index - m.findLineStart(m.index)
+	target := m.findLineEnd(m.gapBuffer.gapLeft)
+	m.gapBuffer.Right(target - m.gapBuffer.gapLeft)
+
+	m.virtualX = 0
 }
 
 func (m *Model) findLineEnd(cIdx int) int {
-	// if cIdx < len(m.content) && m.content[cIdx] != '\n' {
-	// 	return m.scanNewLine(m.index, forward)
-	// }
+	if cIdx < m.gapBuffer.GetContentLen() && m.gapBuffer.GetByteAt(cIdx) != '\n' {
+		nIdx := m.scanNewLine(cIdx, forward)
+		return nIdx
+	}
 	return cIdx
 }
+
+// TODO make following functions work with gapBuffer
 
 func (m *Model) MoveCursorY(d int) {
 	var newLineStart int
@@ -133,18 +136,18 @@ func (m *Model) findNextLineStart(idx int) int {
 	return idx
 }
 
-// func (m *Model) scanNewLine(c int, d direction) int {
-// 	inc := -1
-// 	if d == forward {
-// 		inc = 1
-// 	}
-//
-// 	idx := c
-// 	found := false
-//
-// 	for !found && idx+inc >= 0 && idx+inc < len(m.content) {
-// 		idx += inc
-// 		found = '\n' == m.content[idx]
-// 	}
-// 	return idx
-// }
+func (m *Model) scanNewLine(c int, d direction) int {
+	inc := -1
+	if d == forward {
+		inc = 1
+	}
+
+	idx := c
+	found := false
+
+	for !found && idx+inc >= 0 && idx+inc < m.gapBuffer.GetContentLen() {
+		idx += inc
+		found = '\n' == m.gapBuffer.GetByteAt(idx)
+	}
+	return idx
+}

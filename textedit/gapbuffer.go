@@ -78,7 +78,7 @@ func (g *GapBuffer) GetContentLen() int {
 }
 
 func (g *GapBuffer) GetBytes() []byte {
-	contentSize := g.size - (g.gapRight - g.gapLeft) - 1
+	contentSize := g.GetContentLen()
 	content := make([]byte, contentSize)
 	copy(content[0:], g.buffer[0:g.gapLeft])
 	copy(content[g.gapLeft:], g.buffer[g.gapRight+1:])
