@@ -89,8 +89,6 @@ func (m *Model) findLineEnd(cIdx int) int {
 	return cIdx
 }
 
-// TODO make following functions work with gapBuffer
-
 func (m *Model) MoveCursorY(d int) {
 	tVirtualX := m.virtualX
 	if d == 0 {
@@ -117,13 +115,6 @@ func (m *Model) MoveCursorY(d int) {
 	} else {
 		m.MoveCursorX(tVirtualX)
 	}
-
-	// newLineEnd := m.findLineEnd(newLineStart)
-	// if newLineStart+m.virtualX < newLineEnd {
-	// 	m.index = newLineStart + m.virtualX
-	// } else {
-	// 	m.index = newLineStart
-	// }
 }
 
 func (m *Model) scanNewLine(c int, d direction) int {

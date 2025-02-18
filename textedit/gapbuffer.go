@@ -55,7 +55,7 @@ func (g *GapBuffer) grow() {
 	buffer := make([]byte, newSize)
 	copy(buffer, g.buffer[0:g.gapLeft])
 	newRight := g.gapSize + (g.gapLeft - 1)
-	copy(buffer[newRight:], g.buffer[g.gapRight+1:])
+	copy(buffer[newRight:], g.buffer[g.gapRight:])
 
 	g.gapRight = newRight
 	g.size = newSize
