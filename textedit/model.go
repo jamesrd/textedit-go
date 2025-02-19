@@ -117,6 +117,29 @@ func (m *Model) MoveCursorY(d int) {
 	}
 }
 
+func (m *Model) GetPageByLines(totalLines int) (int, int, int) {
+	sIdx := m.findLineStart(m.gapBuffer.gapLeft)
+	eIdx := m.findLineEnd(m.gapBuffer.gapLeft)
+	linesFound := 0
+	keepScanning := true
+	contentLen := m.gapBuffer.GetContentLen()
+	for linesFound < totalLines && keepScanning {
+		if sIdx > 0 {
+			sIdx = m.findLineStart(sIdx - 1)
+			linesFound++
+		}
+
+		if linesFound < totalLines && eIdx < contentLen {
+			eIdx = m.findLineEnd(eIdx + 1)
+			linesFound++
+		}
+
+		keepScanning = sIdx > 0 || eIdx < contentLen
+	}
+
+	return sIdx, eIdx, m.gapBuffer.gapLeft
+}
+
 func (m *Model) scanNewLine(c int, d direction) int {
 	inc := -1
 	if d == forward {

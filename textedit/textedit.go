@@ -10,13 +10,12 @@ import (
 )
 
 type state struct {
-	model     Model
-	fileName  string
-	height    int
-	width     int
-	pageStart int
-	pageJump  int
-	message   string
+	model       Model
+	fileName    string
+	height      int
+	width       int
+	pageUpLines int
+	message     string
 }
 
 func (m state) Init() tea.Cmd {
@@ -28,7 +27,7 @@ func (m state) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.pageJump = m.height / 2
+		m.pageUpLines = m.height / 2
 
 	case tea.KeyMsg:
 		return m.processKey(msg)
@@ -53,11 +52,11 @@ func (m state) processKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "up":
 		m.model.MoveCursorY(-1)
 	case "pgup":
-		m.model.MoveCursorY(-m.pageJump)
+		m.model.MoveCursorY(-m.pageUpLines)
 	case "down":
 		m.model.MoveCursorY(1)
 	case "pgdown":
-		m.model.MoveCursorY(m.pageJump)
+		m.model.MoveCursorY(m.pageUpLines)
 
 	case "home":
 		m.model.MoveCursorToLineStart()
@@ -82,6 +81,8 @@ func (m state) processKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.message = ""
 		}
+	case "tab":
+		m.model.Insert('\t')
 
 	default:
 		if len(key) > 1 {
@@ -94,27 +95,24 @@ func (m state) processKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m state) View() string {
-	// TODO handle paging
 	var sb strings.Builder
 	sb.WriteString(m.writeTitleLine())
 
-	content, index := m.model.GetContent()
-	contentLen := len(content)
+	sIdx, eIdx, index := m.model.GetPageByLines(m.height - 2)
 
 	linesWritten := 0
 
-	for i := 0; i < contentLen; i++ {
-		b := content[i]
-		if b == '\n' {
-			linesWritten++
-		}
-
+	for i := sIdx; i < eIdx; i++ {
+		b := m.model.gapBuffer.GetByteAt(i)
 		if i == index {
 			switch b {
 			case '\n':
 				sb.WriteString(ansiInvertRune(' '))
-				sb.WriteRune('\n')
+				if linesWritten < m.height-1 {
+					sb.WriteRune('\n')
+				}
 			case '\t':
+				// TODO handle variable tabstop
 				sb.WriteString(ansiInvertRune(' '))
 				sb.WriteString("       ")
 			default:
@@ -126,12 +124,20 @@ func (m state) View() string {
 				sb.WriteString("        ")
 			case 0:
 				sb.WriteByte('^')
+			case '\n':
+				if linesWritten < m.height-1 {
+					sb.WriteByte(b)
+				}
 			default:
 				sb.WriteByte(b)
 			}
 		}
+		if b == '\n' {
+			linesWritten++
+		}
+
 	}
-	if index == contentLen {
+	if index == eIdx {
 		sb.WriteString(ansiInvertRune(' '))
 	}
 	for linesWritten < m.height-2 {
