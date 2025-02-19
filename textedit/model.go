@@ -13,17 +13,14 @@ type Model struct {
 	gapBuffer GapBuffer
 	index     int
 	virtualX  int
-	tabstop   int
 }
 
-func NewModel(content []byte) Model {
+func NewModel(content []byte, gap int) Model {
 	model := Model{
-		index:    0,
-		virtualX: 0,
-		tabstop:  8,
+		gapBuffer: NewGapBuffer(content, gap),
+		index:     0,
+		virtualX:  0,
 	}
-	// TODO: probably want a larger gap size
-	model.gapBuffer = NewGapBuffer(content, 100)
 
 	return model
 }

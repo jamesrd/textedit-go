@@ -13,7 +13,7 @@ func main() {
 		fileName = os.Args[1]
 	}
 
-	p := tea.NewProgram(textedit.InitModelWithFile(fileName))
+	p := tea.NewProgram(textedit.InitModelWithFile(fileName, 100))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)

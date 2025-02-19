@@ -15,6 +15,7 @@ type state struct {
 	height      int
 	width       int
 	pageUpLines int
+	tabstop     int
 	message     string
 }
 
@@ -98,9 +99,12 @@ func (m state) View() string {
 	var sb strings.Builder
 	sb.WriteString(m.writeTitleLine())
 
+	tab := fmt.Sprintf("%*c", m.tabstop-1, ' ')
+
 	sIdx, eIdx, index := m.model.GetPageByLines(m.height - 2)
 
 	linesWritten := 0
+	// TODO horizontal scrolling or word wrap
 
 	for i := sIdx; i < eIdx; i++ {
 		b := m.model.gapBuffer.GetByteAt(i)
@@ -112,16 +116,16 @@ func (m state) View() string {
 					sb.WriteRune('\n')
 				}
 			case '\t':
-				// TODO handle variable tabstop
 				sb.WriteString(ansiInvertRune(' '))
-				sb.WriteString("       ")
+				sb.WriteString(tab)
 			default:
 				sb.WriteString(ansiInvertByte(b))
 			}
 		} else {
 			switch b {
 			case '\t':
-				sb.WriteString("        ")
+				sb.WriteRune(' ')
+				sb.WriteString(tab)
 			case 0:
 				sb.WriteByte('^')
 			case '\n':
@@ -149,16 +153,31 @@ func (m state) View() string {
 }
 
 func (m *state) writeTitleLine() string {
-	titleColor := "\033[45m"
-	errorColor := "\033[41m"
+	titleColor := "\033[45m\033[30m"
+	errorColor := "\033[101m\033[97m"
 	resumeColor := "\033[0m"
-	fm := ""
-	if len(m.message) > 0 {
-		fm = fmt.Sprintf(" %s !! %s%s", errorColor, m.message, titleColor)
-	}
-	mt := m.model.GetStatus()
 
-	return fmt.Sprintf("%sFile: %s - %s%s%s\n", titleColor, m.fileName, mt, fm, resumeColor)
+	mt := m.model.GetStatus()
+	titleBase := fmt.Sprintf(" %s - %s ", m.fileName, mt)
+	messgeBase := ""
+	if len(m.message) > 0 {
+		messgeBase = fmt.Sprintf("<! %s !> ", m.message)
+	}
+
+	padLen := m.width - (len(titleBase) + len(messgeBase))
+
+	var sb strings.Builder
+	sb.WriteString(titleColor)
+	sb.WriteString(titleBase)
+	sb.WriteString(errorColor)
+	sb.WriteString(messgeBase)
+	sb.WriteString(titleColor)
+	sb.WriteString(fmt.Sprintf("%*c", padLen-1, ' '))
+	sb.WriteString(resumeColor)
+	sb.WriteRune('\n')
+
+	return sb.String()
+
 }
 
 func ansiInvertRune(c rune) string {
@@ -172,19 +191,21 @@ func ansiInvertByte(c byte) string {
 	return fmt.Sprintf("\033[07m%c\033[27m", c)
 }
 
-func InitModelWithFile(fileName string) state {
-	m := state{}
+func InitModelWithFile(fileName string, gap int) state {
+	m := state{
+		tabstop: 4,
+	}
 	if len(fileName) > 0 {
 		m.fileName = fileName
 		content, err := readFile(fileName)
 		if err != nil {
 			panic(err)
 		}
-		m.model = NewModel(content)
+		m.model = NewModel(content, gap)
 	} else {
 		// TODO make sure the file doesn't exist already
 		m.fileName = "untitled.txt"
-		m.model = NewModel([]byte{})
+		m.model = NewModel([]byte{}, gap)
 	}
 	return m
 }
