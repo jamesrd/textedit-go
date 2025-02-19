@@ -10,6 +10,7 @@ type GapBuffer struct {
 	gapRight int
 }
 
+// TODO add tests
 func (g *GapBuffer) Left(n int) {
 	for i := 0; i < n && g.gapLeft > 0; i++ {
 		g.gapLeft--
