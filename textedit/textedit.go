@@ -203,8 +203,7 @@ func InitModelWithFile(fileName string, gap int) state {
 		}
 		m.model = NewModel(content, gap)
 	} else {
-		// TODO make sure the file doesn't exist already
-		m.fileName = "untitled.txt"
+		m.fileName = getUnusedFilename("untitled", "txt")
 		m.model = NewModel([]byte{}, gap)
 	}
 	return m
@@ -216,12 +215,27 @@ func readFile(name string) ([]byte, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return []byte{}, nil
 		} else {
-			// TODO find other errors to handle
 			return []byte{}, err
 		}
 
 	}
 	return contents, nil
+}
+
+func getUnusedFilename(base string, ext string) string {
+	name := fmt.Sprintf("%s.%s", base, ext)
+	if _, err := os.Stat(name); errors.Is(err, os.ErrNotExist) {
+		return name
+	}
+	found := false
+	i := 0
+	for !found {
+		i++
+		name = fmt.Sprintf("%s%d.%s", base, i, ext)
+		_, err := os.Stat(name)
+		found = errors.Is(err, os.ErrNotExist)
+	}
+	return name
 }
 
 func (m state) writeFile() error {
