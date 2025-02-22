@@ -8,8 +8,9 @@ making this production worthy.
 * Makes use of [Bubble Tea](https://github.com/charmbracelet/bubbletea) for application loop and terminal control.
 
 ## Todo:
-[ ] Horizontal line scrolling
-[ ] Word wrap mode
-[ ] Undo/redo
-[ ] Rope or other data structure
+- [ ] Unit test full coverage for gap buffer
+- [ ] Horizontal line scrolling
+- [ ] Word wrap mode
+- [ ] Undo/redo
+- [ ] Rope or other data structure
 
