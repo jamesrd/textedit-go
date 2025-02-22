@@ -10,7 +10,6 @@ type GapBuffer struct {
 	gapRight int
 }
 
-// TODO add tests
 func (g *GapBuffer) Left(n int) {
 	for i := 0; i < n && g.gapLeft > 0; i++ {
 		g.gapLeft--
@@ -68,8 +67,8 @@ func (g *GapBuffer) GetByteAt(pos int) byte {
 	if pos >= g.gapLeft {
 		idx += g.gapRight - g.gapLeft + 1
 	}
-	if idx >= g.size {
-		panic(fmt.Sprintf("Out of bounds. r %d c %d t %d", pos, idx, g.size))
+	if idx >= g.size || idx < 0 {
+		panic(fmt.Sprintf("Out of bounds: size=%d requested=%d calculated=%d", g.size, pos, idx))
 	}
 	return g.buffer[idx]
 }
