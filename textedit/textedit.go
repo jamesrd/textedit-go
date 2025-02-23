@@ -15,7 +15,6 @@ type state struct {
 	height      int
 	width       int
 	pageUpLines int
-	tabstop     int
 	message     string
 }
 
@@ -183,9 +182,7 @@ func ansiInvertByte(c byte) string {
 }
 
 func InitModelWithFile(fileName string, gap int) state {
-	m := state{
-		tabstop: 4,
-	}
+	m := state{}
 	if len(fileName) > 0 {
 		m.fileName = fileName
 		content, err := readFile(fileName)
@@ -193,6 +190,7 @@ func InitModelWithFile(fileName string, gap int) state {
 			panic(err)
 		}
 		m.model = NewModel(content, gap)
+		m.model.tabstop = 4
 	} else {
 		m.fileName = getUnusedFilename("untitled", "txt")
 		m.model = NewModel([]byte{}, gap)

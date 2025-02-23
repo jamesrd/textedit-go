@@ -13,4 +13,5 @@ making this production worthy.
 - [ ] Word wrap mode
 - [ ] Undo/redo
 - [ ] Rope or other data structure
+- [ ] Replace Bubble Tea
 

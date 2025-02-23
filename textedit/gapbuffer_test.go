@@ -167,7 +167,6 @@ func TestGetBytes(t *testing.T) {
 	var foo byte = 'a'
 	g.Insert(foo)
 	equals(t, slices.Insert(basicTestContent, 0, foo), g.GetBytes())
-
 }
 
 // test helpers

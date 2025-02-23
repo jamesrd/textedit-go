@@ -13,6 +13,7 @@ type Model struct {
 	gapBuffer GapBuffer
 	index     int
 	virtualX  int
+	tabstop   int
 }
 
 func NewModel(content []byte, gap int) Model {
@@ -20,6 +21,7 @@ func NewModel(content []byte, gap int) Model {
 		gapBuffer: NewGapBuffer(content, gap),
 		index:     0,
 		virtualX:  0,
+		tabstop:   4,
 	}
 
 	return model
@@ -160,6 +162,11 @@ func (m *Model) GetPageLines(totalLines int) ([]string, int, int) {
 			x = 0
 			rStrings = append(rStrings, string(cString))
 			cString = []byte{}
+		} else if c == '\t' {
+			for ti := 0; ti < m.tabstop; ti++ {
+				x++
+				cString = append(cString, ' ')
+			}
 		} else {
 			cString = append(cString, c)
 			x++
