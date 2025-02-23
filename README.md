@@ -9,7 +9,7 @@ making this production worthy.
 
 ## Todo:
 - [x] Unit test full coverage for gap buffer
-- [ ] Horizontal line scrolling
+- [x] Horizontal line scrolling
 - [ ] Word wrap mode
 - [ ] Undo/redo
 - [ ] Rope or other data structure

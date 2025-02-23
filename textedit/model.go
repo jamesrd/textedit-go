@@ -137,6 +137,46 @@ func (m *Model) GetPageByLines(totalLines int) (int, int, int) {
 	return sIdx, eIdx, m.gapBuffer.gapLeft
 }
 
+func (m *Model) GetPageLines(totalLines int) ([]string, int, int) {
+	sIdx, eIdx, index := m.GetPageByLines(totalLines)
+
+	rStrings := []string{}
+	cString := []byte{}
+	iY, y, iX, x := 0, 0, 0, 0
+	foundIndex := false
+
+	contenLen := m.gapBuffer.GetContentLen()
+
+	for cIdx := sIdx; cIdx <= eIdx && cIdx < contenLen; cIdx++ {
+		if index == cIdx {
+			iY = y
+			iX = x
+			foundIndex = true
+		}
+
+		c := m.gapBuffer.GetByteAt(cIdx)
+		if c == '\n' {
+			y++
+			x = 0
+			rStrings = append(rStrings, string(cString))
+			cString = []byte{}
+		} else {
+			cString = append(cString, c)
+			x++
+		}
+	}
+	if len(cString) > 0 || eIdx == contenLen {
+		rStrings = append(rStrings, string(cString))
+	}
+	if !foundIndex {
+		iY = y
+		iX = x
+	}
+
+	return rStrings, iY, iX
+
+}
+
 func (m *Model) scanNewLine(c int, d direction) int {
 	inc := -1
 	if d == forward {

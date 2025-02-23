@@ -97,54 +97,45 @@ func (m state) processKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m state) View() string {
 	var sb strings.Builder
-	sb.WriteString(m.writeTitleLine())
+	lines, y, x := m.model.GetPageLines(m.height - 2)
+	sb.WriteString(m.writeTitleLine(y+1, x+1))
 
-	tab := fmt.Sprintf("%*c", m.tabstop-1, ' ')
+	linesWritten := len(lines)
+	maxLength := m.width - 1
 
-	sIdx, eIdx, index := m.model.GetPageByLines(m.height - 2)
-
-	linesWritten := 0
-	// TODO horizontal scrolling or word wrap
-
-	for i := sIdx; i < eIdx; i++ {
-		b := m.model.gapBuffer.GetByteAt(i)
-		if i == index {
-			switch b {
-			case '\n':
-				sb.WriteString(ansiInvertRune(' '))
-				if linesWritten < m.height-1 {
-					sb.WriteRune('\n')
+	for cY, line := range lines {
+		if cY > 0 {
+			sb.WriteRune('\n')
+		}
+		wLine := line
+		if cY == y {
+			lLen := len(line)
+			aX := x
+			if lLen > maxLength {
+				sl := x - (maxLength / 2)
+				el := x + (maxLength / 2)
+				if sl < 0 {
+					el += -sl
+					sl = 0
 				}
-			case '\t':
-				sb.WriteString(ansiInvertRune(' '))
-				sb.WriteString(tab)
-			default:
-				sb.WriteString(ansiInvertByte(b))
+				if el > lLen {
+					sl -= (el - lLen)
+					el = lLen
+				}
+				wLine = line[sl:el]
+
+				aX = x - sl
 			}
-		} else {
-			switch b {
-			case '\t':
-				sb.WriteRune(' ')
-				sb.WriteString(tab)
-			case 0:
-				sb.WriteByte('^')
-			case '\n':
-				if linesWritten < m.height-1 {
-					sb.WriteByte(b)
-				}
-			default:
-				sb.WriteByte(b)
+			if aX < len(wLine) {
+				wLine = wLine[:aX] + "\033[07m" + string(wLine[aX]) + "\033[27m" + wLine[aX+1:]
 			}
 		}
-		if b == '\n' {
-			linesWritten++
+		sb.WriteString(wLine)
+		if y == cY && x == len(line) {
+			sb.WriteString(ansiInvertRune(' '))
 		}
-
 	}
-	if index == eIdx {
-		sb.WriteString(ansiInvertRune(' '))
-	}
-	for linesWritten < m.height-2 {
+	for linesWritten < m.height-1 {
 		sb.WriteString("\n ~")
 		linesWritten++
 	}
@@ -152,13 +143,13 @@ func (m state) View() string {
 	return sb.String()
 }
 
-func (m *state) writeTitleLine() string {
+func (m *state) writeTitleLine(line int, col int) string {
 	titleColor := "\033[45m\033[30m"
 	errorColor := "\033[101m\033[97m"
 	resumeColor := "\033[0m"
 
 	mt := m.model.GetStatus()
-	titleBase := fmt.Sprintf(" %s - %s ", m.fileName, mt)
+	titleBase := fmt.Sprintf(" %s - y: %d x: %d %s ", m.fileName, line, col, mt)
 	messgeBase := ""
 	if len(m.message) > 0 {
 		messgeBase = fmt.Sprintf("<! %s !> ", m.message)
